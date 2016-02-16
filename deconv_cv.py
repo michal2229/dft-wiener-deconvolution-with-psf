@@ -77,16 +77,38 @@ if __name__ == '__main__':
 
     win = 'deconvolution'
 
-    img = cv2.imread(fn, 0)
-    if img is None:
-        print('Failed to load fn1:', fn1)
+    img_bw = cv2.imread(fn, 0)
+    img_rgb = cv2.imread(fn, 1)
+
+    if img_bw is None and img_rgb is None:
+        print('Failed to load image:', fn)
         sys.exit(1)
 
-    img = np.float32(img)/255.0
-    cv2.imshow('input', img)
+    img_r = np.zeros_like(img_bw)
+    img_g = np.zeros_like(img_bw)
+    img_b = np.zeros_like(img_bw)
 
-    img = blur_edge(img)
-    IMG = cv2.dft(img, flags=cv2.DFT_COMPLEX_OUTPUT)
+    img_r = img_rgb[..., 0]
+    img_g = img_rgb[..., 1]
+    img_b = img_rgb[..., 2]
+
+    img_rgb = np.float32(img_rgb)/255.0
+    img_bw = np.float32(img_bw)/255.0
+    img_r = np.float32(img_r)/255.0
+    img_g = np.float32(img_g)/255.0
+    img_b = np.float32(img_b)/255.0
+
+    cv2.imshow('input', img_rgb)
+
+    # img_bw = blur_edge(img_bw)
+    img_r = blur_edge(img_r)
+    img_g = blur_edge(img_g)
+    img_b = blur_edge(img_b)
+
+    # IMG_BW = cv2.dft(img_bw, flags=cv2.DFT_COMPLEX_OUTPUT)
+    IMG_R = cv2.dft(img_r, flags=cv2.DFT_COMPLEX_OUTPUT)
+    IMG_G = cv2.dft(img_g, flags=cv2.DFT_COMPLEX_OUTPUT)
+    IMG_B = cv2.dft(img_b, flags=cv2.DFT_COMPLEX_OUTPUT)
 
     defocus = '--circle' in opts
 
@@ -102,17 +124,34 @@ if __name__ == '__main__':
         cv2.imshow('psf', psf)
 
         psf /= psf.sum()
-        psf_pad = np.zeros_like(img)
+        psf_pad = np.zeros_like(img_bw)
         kh, kw = psf.shape
         psf_pad[:kh, :kw] = psf
         PSF = cv2.dft(psf_pad, flags=cv2.DFT_COMPLEX_OUTPUT, nonzeroRows = kh)
         PSF2 = (PSF**2).sum(-1)
         iPSF = PSF / (PSF2 + noise)[...,np.newaxis]
-        RES = cv2.mulSpectrums(IMG, iPSF, 0)
-        res = cv2.idft(RES, flags=cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
-        res = np.roll(res, -kh//2, 0)
-        res = np.roll(res, -kw//2, 1)
-        cv2.imshow(win, res)
+
+        # RES_BW = cv2.mulSpectrums(IMG_BW, iPSF, 0)
+        RES_R = cv2.mulSpectrums(IMG_R, iPSF, 0)
+        RES_G = cv2.mulSpectrums(IMG_G, iPSF, 0)
+        RES_B = cv2.mulSpectrums(IMG_B, iPSF, 0)
+
+
+        # res_bw = cv2.idft(RES_BW, flags=cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
+        res_r = cv2.idft(RES_R, flags=cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
+        res_g = cv2.idft(RES_G, flags=cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
+        res_b = cv2.idft(RES_B, flags=cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
+
+        res_rgb = np.zeros_like(img_rgb)
+        res_rgb[..., 0] = res_r
+        res_rgb[..., 1] = res_g
+        res_rgb[..., 2] = res_b
+
+        # res_bw = np.roll(res_bw, -kh//2, 0)
+        # res_bw = np.roll(res_bw, -kw//2, 1)
+        res_rgb = np.roll(res_rgb, -kh//2, 0)
+        res_rgb = np.roll(res_rgb, -kw//2, 1)
+        cv2.imshow(win, res_rgb)
 
     cv2.namedWindow(win)
     cv2.namedWindow('psf', 0)
