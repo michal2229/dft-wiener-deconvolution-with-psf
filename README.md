@@ -7,6 +7,8 @@ Changes in this repository enabled processing of color images (treated as three 
 
 This code performs Wiener deconvolution in order to inverse the impact of image focus blur or motion blur. In order to do that OpenCV and NumPy is used.
 
+The code was changed so it can now use custom PSF loaded from image file (specified in command line).
+
 ### Examples ###
 
 Focus blur reduction:
